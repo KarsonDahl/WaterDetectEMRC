@@ -1,26 +1,49 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * App colors for light and dark mode. Light mode is the field default — it
+ * reads best in direct sun — but dark mode follows the phone setting.
  */
-
-import '@/global.css';
 
 import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
+    text: '#0B0B0B',
+    background: '#FFFFFF',
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    textSecondary: '#52514E',
+    border: '#D4D4D8',
+    tint: '#1F63B4',
+    onTint: '#FFFFFF',
+    danger: '#B42323',
+    warningText: '#7A4B00',
+    warningBackground: '#FFF3D6',
+    errorBackground: '#FDE7E7',
+    // Chart roles (see the dataviz reference palette).
+    chartSeries: '#2A78D6',
+    chartDraft: '#EB6834',
+    chartGrid: '#E1E0D9',
+    chartAxis: '#C3C2B7',
+    chartMuted: '#6E6C66',
   },
   dark: {
-    text: '#ffffff',
+    text: '#FFFFFF',
     background: '#000000',
-    backgroundElement: '#212225',
+    backgroundElement: '#1C1D20',
     backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    textSecondary: '#C3C2B7',
+    border: '#3A3D42',
+    tint: '#4D9BF0',
+    onTint: '#00152E',
+    danger: '#FF7A7A',
+    warningText: '#FFD27A',
+    warningBackground: '#3A2C0C',
+    errorBackground: '#401616',
+    chartSeries: '#3987E5',
+    chartDraft: '#D95926',
+    chartGrid: '#2C2C2A',
+    chartAxis: '#383835',
+    chartMuted: '#A3A19A',
   },
 } as const;
 
@@ -28,13 +51,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -44,10 +63,10 @@ export const Fonts = Platform.select({
     mono: 'monospace',
   },
   web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    sans: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    rounded: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+    mono: "ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace",
   },
 });
 
@@ -61,5 +80,7 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
-export const MaxContentWidth = 800;
+/** Minimum touch target — generous for field use, possibly with gloves. */
+export const TouchTarget = 52;
+export const Radius = 10;
+export const MaxContentWidth = 720;

@@ -1,98 +1,111 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link, Stack, router } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { useState } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { Button } from '@/components/button';
+import { HeaderLink } from '@/components/header-link';
+import { Card, Screen } from '@/components/layout';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useLiveQuery } from '@/db/live';
+import { listSurveys } from '@/db/repo';
+import type { SurveySummary } from '@/db/types';
+import { showError } from '@/features/dialogs';
+import { exportCsv } from '@/features/export';
+import { useTheme } from '@/hooks/use-theme';
+import { capitalize, formatDateTime } from '@/lib/format';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
+export default function SurveysScreen() {
+  const db = useSQLiteContext();
+  const { data: surveys } = useLiveQuery((db) => listSurveys(db), []);
+  const [exporting, setExporting] = useState(false);
+
+  async function onExportAll() {
+    setExporting(true);
+    try {
+      await exportCsv(db, 'all-surveys');
+    } catch (e) {
+      showError('Export failed', e);
+    } finally {
+      setExporting(false);
+    }
   }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () => <HeaderLink href="/help" label="Help" />,
+        }}
+      />
+      <Screen
+        footer={
+          <>
+            {surveys && surveys.length > 0 ? (
+              <Button title="Export all" variant="secondary" onPress={onExportAll} busy={exporting} style={styles.grow} />
+            ) : null}
+            <Button title="New survey" onPress={() => router.push('/survey/new')} style={styles.grow} />
+          </>
+        }>
+        {surveys?.length === 0 ? <EmptyState /> : null}
+        {surveys?.map((s) => <SurveyRow key={s.id} survey={s} />)}
+      </Screen>
+    </>
   );
 }
 
-export default function HomeScreen() {
+function SurveyRow({ survey }: { survey: SurveySummary }) {
+  const theme = useTheme();
+  const count = survey.readingCount;
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
+    <Link href={{ pathname: '/survey/[id]', params: { id: survey.id } }} asChild>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.row, { backgroundColor: theme.backgroundElement, opacity: pressed ? 0.75 : 1 }]}>
+        <ThemedText style={styles.rowTitle} numberOfLines={1}>
+          {survey.name}
         </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+        <ThemedText type="small" themeColor="textSecondary">
+          {capitalize(survey.mode)} · {capitalize(survey.arrayType)} · {count} {count === 1 ? 'reading' : 'readings'}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {formatDateTime(survey.createdAt)}
+          {survey.latitude != null ? ' · GPS saved' : ' · no GPS'}
+          {survey.operator ? ` · ${survey.operator}` : ''}
+        </ThemedText>
+      </Pressable>
+    </Link>
   );
 }
+
+function EmptyState() {
+  return (
+    <Card>
+      <ThemedText style={styles.rowTitle}>No surveys yet</ThemedText>
+      <ThemedText themeColor="textSecondary">
+        A survey is one spot (a sounding) or one line (a profile). Create one when you arrive on site, then add a
+        reading for each stake spacing.
+      </ThemedText>
+      <ThemedText themeColor="textSecondary">
+        Everything is saved on this phone and works with no signal. Use Export to send a CSV when you are back online.
+      </ThemedText>
+    </Card>
+  );
+}
+
 
 const styles = StyleSheet.create({
-  container: {
+  grow: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+  row: {
+    borderRadius: Radius + 4,
+    padding: Spacing.three,
+    gap: 2,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  rowTitle: {
+    fontSize: 18,
+    fontWeight: 700,
   },
 });

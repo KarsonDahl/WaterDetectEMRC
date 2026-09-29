@@ -1,5 +1,16 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## This project
+
+Offline-first Android app for four-electrode ground resistivity surveys (see README.md).
+
+- Field use with no signal: never add a feature that needs the network to work. SQLite (`expo-sqlite`) is the source of truth.
+- The DB stores raw readings in SI units (V, A, m). K, R and ρa are always derived via `src/lib/resistivity.ts`, never stored.
+- Keep `src/lib/` free of React Native imports so it stays unit-testable (`npm test`) and portable to the Raspberry Pi.
+- Schema changes: append to `MIGRATIONS` in `src/db/migrations.ts`; never edit a shipped migration.
+- Field UX: large touch targets (`TouchTarget`), every option visible (no hidden dropdowns), warnings as icon + text.
+- Web (`npm run web`) is a dev preview only; Android is the target.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
@@ -21,7 +32,7 @@ npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
 ```
 
-Run lint and typecheck before declaring any task done.
+Run `npm test`, lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
