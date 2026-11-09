@@ -35,10 +35,11 @@ export default function HelpScreen() {
 
       <SectionTitle>Apparent resistivity</SectionTitle>
       <Card>
-        <Formula>K = π (AB² − MN²) / (4 · MN)</Formula>
+        <Formula>Wenner: K = π (AB² − MN²) / (4 · MN) = 2πa</Formula>
+        <Formula>Schlumberger: K = π (AB/2)²</Formula>
         <Formula>ρa = K · R   (Ω·m)</Formula>
         <ThemedText themeColor="textSecondary">
-          One formula covers both arrays. For Wenner (AB = 3a) it is K = 2πa. Lower ρa can mean wetter ground, but
+          For Schlumberger, ρa = |ΔV/ΔI| · π · (AB/2)². Lower ρa can mean wetter ground, but
           clay and salty water also read low — look at the shape of the curve, not a single number.
         </ThemedText>
       </Card>

@@ -19,6 +19,10 @@ function synth({ R, I1, I2 = I1, SP, lead = 1 }: { R: number; I1: number; I2?: n
 }
 
 describe('geometricFactor', () => {
+  it('uses K = π (AB/2)² for Schlumberger', () => {
+    expect(geometricFactor({ innerM: 1, outerM: 20 }, 'schlumberger')).toBeCloseTo(Math.PI * 100, 10);
+  });
+
   it('reduces to 2πa for Wenner', () => {
     expect(geometricFactor({ innerM: 2, outerM: 6 })).toBeCloseTo(2 * Math.PI * 2, 10);
   });

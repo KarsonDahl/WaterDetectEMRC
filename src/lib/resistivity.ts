@@ -94,13 +94,16 @@ export function isValidGeometry({ innerM, outerM }: Geometry): boolean {
 }
 
 /**
- * Geometric factor for a symmetric array: K = π (AB² − MN²) / (4 · MN).
- * Wenner (AB = 3a, MN = a) reduces to 2πa; Schlumberger to π(L² − l²)/(2l)
- * with L = AB/2, l = MN/2.
+ * Geometric factor K, metres.
+ *
+ * - Schlumberger: K = π (AB/2)², so ρa = |ΔV/ΔI| · π · (AB/2)².
+ * - Otherwise (Wenner, or no array given): the general symmetric-array form
+ *   K = π (AB² − MN²) / (4 · MN). Wenner (AB = 3a, MN = a) reduces to 2πa.
  */
-export function geometricFactor(g: Geometry): number | null {
+export function geometricFactor(g: Geometry, arrayType?: ArrayType): number | null {
   if (!isValidGeometry(g)) return null;
   const { innerM: mn, outerM: ab } = g;
+  if (arrayType === 'schlumberger') return Math.PI * (ab / 2) ** 2;
   return (Math.PI * (ab * ab - mn * mn)) / (4 * mn);
 }
 
@@ -207,7 +210,7 @@ function combinePolarities(input: ReadingInput, warnings: ReadingWarning[]): Com
 
 export function computeReading(input: ReadingInput): ReadingResult {
   const warnings = geometryWarnings(input.arrayType, input);
-  const k = geometricFactor(input);
+  const k = geometricFactor(input, input.arrayType);
   const combined = combinePolarities(input, warnings);
   const resistance = combined?.resistance ?? null;
   return {
