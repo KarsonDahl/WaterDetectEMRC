@@ -94,17 +94,17 @@ export function isValidGeometry({ innerM, outerM }: Geometry): boolean {
 }
 
 /**
- * Geometric factor K, metres.
+ * Geometric factor K, metres. Spacings are metres here; values typed in feet are
+ * multiplied by 0.3048 on entry (see `lengthToSI`).
  *
- * - Schlumberger: K = π (AB/2)², so ρa = |ΔV/ΔI| · π · (AB/2)². AB is in metres here;
- *   spacings typed in feet are multiplied by 0.3048 on entry (see `lengthToSI`).
- * - Otherwise (Wenner, or no array given): the general symmetric-array form
- *   K = π (AB² − MN²) / (4 · MN). Wenner (AB = 3a, MN = a) reduces to 2πa.
+ * K = π ((AB/2)² − (MN/2)²) / MN  =  π (AB² − MN²) / (4 · MN)
+ *
+ * This is the Schlumberger form π(L² − l²)/(2l) with L = AB/2, l = MN/2, and for
+ * Wenner (AB = 3a, MN = a) it reduces to 2πa. ρa = |ΔV/ΔI| · K.
  */
-export function geometricFactor(g: Geometry, arrayType?: ArrayType): number | null {
+export function geometricFactor(g: Geometry): number | null {
   if (!isValidGeometry(g)) return null;
   const { innerM: mn, outerM: ab } = g;
-  if (arrayType === 'schlumberger') return Math.PI * (ab / 2) ** 2;
   return (Math.PI * (ab * ab - mn * mn)) / (4 * mn);
 }
 
@@ -211,7 +211,7 @@ function combinePolarities(input: ReadingInput, warnings: ReadingWarning[]): Com
 
 export function computeReading(input: ReadingInput): ReadingResult {
   const warnings = geometryWarnings(input.arrayType, input);
-  const k = geometricFactor(input, input.arrayType);
+  const k = geometricFactor(input);
   const combined = combinePolarities(input, warnings);
   const resistance = combined?.resistance ?? null;
   return {
