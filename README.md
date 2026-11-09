@@ -67,7 +67,7 @@ inner span.
 | Quantity | Formula |
 |---|---|
 | Geometric factor, Wenner | `K = π (AB² − MN²) / (4 · MN)` = `2πa` |
-| Geometric factor, Schlumberger | `K = π (AB/2)²` |
+| Geometric factor, Schlumberger | `K = π ((AB/2) · 0.3048)²` (AB in feet) |
 | Resistance, **Signed ±** method (default) | `R = \|V₁ − V₂\| / (\|I₁\| + \|I₂\|)` |
 | Resistance, **Average** method | `R = (\|V₁\|/\|I₁\| + \|V₂\|/\|I₂\|) / 2` |
 | Apparent resistivity | `ρa = K · R` (Ω·m) |
