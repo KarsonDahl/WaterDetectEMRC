@@ -7,6 +7,20 @@
 
 export type VoltageUnit = 'V' | 'mV';
 export type CurrentUnit = 'A' | 'mA';
+/** Distance unit the operator works in. Storage is always metres. */
+export type LengthUnit = 'm' | 'ft';
+
+export const FEET_TO_METRES = 0.3048;
+
+/** Typed distance (in `unit`) → metres. */
+export function lengthToSI(value: number, unit: LengthUnit): number {
+  return cleanFloat(unit === 'ft' ? value * FEET_TO_METRES : value);
+}
+
+/** Metres → distance in `unit`, rounded to 2 decimals for display/editing. */
+export function lengthFromSI(value: number, unit: LengthUnit): number {
+  return unit === 'ft' ? Math.round((value / FEET_TO_METRES) * 100) / 100 : cleanFloat(value);
+}
 
 const FACTOR: Record<VoltageUnit | CurrentUnit, number> = {
   V: 1,

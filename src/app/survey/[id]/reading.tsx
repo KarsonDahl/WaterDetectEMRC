@@ -17,7 +17,18 @@ import type { Reading, ReadingInput, Survey } from '@/db/types';
 import { confirmDestructive, showError } from '@/features/dialogs';
 import { useTheme } from '@/hooks/use-theme';
 import { chartPoints, chartX, chartXLabel, readingResult, suggestNextReading } from '@/lib/survey';
-import { formatSig, fromSI, parseDecimal, toInputText, toSI, type CurrentUnit, type VoltageUnit } from '@/lib/units';
+import {
+  formatSig,
+  fromSI,
+  lengthFromSI,
+  lengthToSI,
+  parseDecimal,
+  toInputText,
+  toSI,
+  type CurrentUnit,
+  type LengthUnit,
+  type VoltageUnit,
+} from '@/lib/units';
 
 export default function ReadingScreen() {
   const { id, readingId } = useLocalSearchParams<{ id: string; readingId?: string }>();
@@ -58,13 +69,15 @@ type FormProps = {
 };
 
 function initialState(survey: Survey, readings: Reading[], editing?: Reading) {
+  const u = survey.lengthUnit;
+  const len = (m: number | null | undefined) => (m == null ? '' : toInputText(lengthFromSI(m, u)));
   if (editing) {
     const v = (x: number | null) => (x == null ? '' : toInputText(fromSI(x, editing.vUnit)));
     const i = (x: number | null) => (x == null ? '' : toInputText(fromSI(x, editing.iUnit)));
     return {
-      position: toInputText(editing.positionM),
-      inner: toInputText(editing.innerM),
-      outer: toInputText(editing.outerM),
+      position: len(editing.positionM),
+      inner: len(editing.innerM),
+      outer: len(editing.outerM),
       v1: v(editing.v1),
       i1: i(editing.i1),
       v2: v(editing.v2),
@@ -77,13 +90,14 @@ function initialState(survey: Survey, readings: Reading[], editing?: Reading) {
   const last = readings.at(-1);
   const next = suggestNextReading(survey, readings);
   return {
-    position: toInputText(next?.positionM ?? null),
-    inner: toInputText(next?.innerM ?? last?.innerM),
-    outer: toInputText(next?.outerM ?? last?.outerM),
+    position: len(next?.positionM ?? null),
+    inner: len(next?.innerM ?? last?.innerM),
+    outer: len(next?.outerM ?? last?.outerM),
     v1: '',
     i1: '',
-    v2: '',
-    i2: '',
+    // The reversed reading is normally negative, so start with the minus sign in place.
+    v2: '-',
+    i2: '-',
     // Meter ranges change gradually, so start from whatever was used last.
     vUnit: last?.vUnit ?? ('mV' as VoltageUnit),
     iUnit: last?.iUnit ?? ('mA' as CurrentUnit),
@@ -109,9 +123,11 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
 
   const volts = (text: string) => nullable(parseDecimal(text), (n) => toSI(n, vUnit));
   const amps = (text: string) => nullable(parseDecimal(text), (n) => toSI(n, iUnit));
-  const innerM = parseDecimal(inner);
-  const outerM = parseDecimal(outer);
-  const positionM = parseDecimal(position);
+  const lengthUnit: LengthUnit = survey.lengthUnit;
+  const metres = (text: string) => nullable(parseDecimal(text), (n) => lengthToSI(n, lengthUnit));
+  const innerM = metres(inner);
+  const outerM = metres(outer);
+  const positionM = metres(position);
 
   const measurement = {
     innerM: innerM ?? NaN,
@@ -129,7 +145,10 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
   if (survey.mode === 'profile' && positionM == null) problems.push('Enter the station position.');
   if (measurement.v1 == null || measurement.i1 == null) problems.push('Enter at least the switch position 1 voltage and current.');
   if (result.warnings.some((w) => w.level === 'error')) problems.push('Fix the errors above.');
-  const invalidText = [position, inner, outer, v1, i1, v2, i2].some((t) => t.trim() !== '' && parseDecimal(t) == null);
+  // A lone '-' is the pre-filled sign on reading 2, not a typo.
+  const invalidText = [position, inner, outer, v1, i1, v2, i2].some(
+    (t) => t.trim() !== '' && t.trim() !== '-' && parseDecimal(t) == null,
+  );
   if (invalidText) problems.push('One of the numbers could not be read — check the red box.');
 
   function onInnerChange(text: string) {
@@ -180,7 +199,8 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
   }
 
   const canSave = problems.length === 0 && !saving;
-  const halfAB = outerM != null ? outerM / 2 : null;
+  const outerTyped = parseDecimal(outer);
+  const halfAB = outerTyped != null ? outerTyped / 2 : null;
 
   return (
     <Screen
@@ -208,24 +228,24 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
       </SectionTitle>
       {survey.mode === 'profile' ? (
         <Field label="Station position along the line">
-          <NumberInput accessibilityLabel="Station position" value={position} onChangeText={setPosition} suffix="m" />
+          <NumberInput accessibilityLabel="Station position" value={position} onChangeText={setPosition} suffix={lengthUnit} />
         </Field>
       ) : null}
       <View style={styles.row}>
         <View style={styles.grow}>
           <Field label="Inner M–N">
-            <NumberInput accessibilityLabel="Inner spacing MN" value={inner} onChangeText={onInnerChange} suffix="m" />
+            <NumberInput accessibilityLabel="Inner spacing MN" value={inner} onChangeText={onInnerChange} suffix={lengthUnit} />
           </Field>
         </View>
         <View style={styles.grow}>
           <Field label="Outer A–B (full)">
-            <NumberInput accessibilityLabel="Outer spacing AB" value={outer} onChangeText={setOuter} suffix="m" />
+            <NumberInput accessibilityLabel="Outer spacing AB" value={outer} onChangeText={setOuter} suffix={lengthUnit} />
           </Field>
         </View>
       </View>
       <ThemedText type="small" themeColor="textSecondary">
-        {halfAB != null ? `AB/2 = ${formatSig(halfAB, 3)} m` : ''}
-        {result.depthM != null ? ` · sees roughly ${formatSig(result.depthM, 2)} m deep` : ''}
+        {halfAB != null ? `AB/2 = ${formatSig(halfAB, 3)} ${lengthUnit}` : ''}
+        {result.depthM != null ? ` · sees roughly ${formatSig(lengthFromSI(result.depthM, lengthUnit), 2)} ${lengthUnit} deep` : ''}
       </ThemedText>
 
       <SectionTitle
@@ -259,14 +279,14 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
       </View>
 
       <SectionTitle
-        detail={survey.polarityMethod === 'reversal' ? 'The voltage usually changes sign — tap ± if so.' : undefined}>
+        detail={survey.polarityMethod === 'reversal' ? 'Voltage and current start negative — tap ± to flip.' : undefined}>
         Switch position 2
       </SectionTitle>
       <Field label="Voltage V₂ (M–N)">
         <NumberInput accessibilityLabel="Voltage 2" value={v2} onChangeText={setV2} signed suffix={vUnit} />
       </Field>
       <Field label="Current I₂">
-        <NumberInput accessibilityLabel="Current 2" value={i2} onChangeText={setI2} suffix={iUnit} />
+        <NumberInput accessibilityLabel="Current 2" value={i2} onChangeText={setI2} signed suffix={iUnit} />
       </Field>
 
       <Card>

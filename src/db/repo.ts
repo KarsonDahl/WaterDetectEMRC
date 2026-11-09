@@ -6,7 +6,7 @@ import type { Reading, ReadingInput, Survey, SurveyInput, SurveySummary } from '
 
 // Column lists alias snake_case columns to the camelCase TypeScript types.
 const SURVEY_COLUMNS = `
-  s.id, s.name, s.mode, s.array_type AS arrayType, s.polarity_method AS polarityMethod,
+  s.id, s.name, s.mode, s.array_type AS arrayType, s.polarity_method AS polarityMethod, s.length_unit AS lengthUnit,
   s.latitude, s.longitude, s.altitude_m AS altitudeM, s.gps_accuracy_m AS gpsAccuracyM,
   s.operator, s.notes,
   s.profile_inner_m AS profileInnerM, s.profile_outer_m AS profileOuterM, s.profile_step_m AS profileStepM,
@@ -47,9 +47,9 @@ export async function createSurvey(db: SQLiteDatabase, input: SurveyInput): Prom
   const ts = now();
   await db.runAsync(
     `INSERT INTO survey (
-       id, name, mode, array_type, polarity_method, latitude, longitude, altitude_m, gps_accuracy_m,
+       id, name, mode, array_type, polarity_method, length_unit, latitude, longitude, altitude_m, gps_accuracy_m,
        operator, notes, profile_inner_m, profile_outer_m, profile_step_m, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     id,
     ...surveyValues(input),
     ts,
@@ -62,7 +62,7 @@ export async function createSurvey(db: SQLiteDatabase, input: SurveyInput): Prom
 export async function updateSurvey(db: SQLiteDatabase, id: string, input: SurveyInput): Promise<void> {
   await db.runAsync(
     `UPDATE survey SET
-       name = ?, mode = ?, array_type = ?, polarity_method = ?, latitude = ?, longitude = ?,
+       name = ?, mode = ?, array_type = ?, polarity_method = ?, length_unit = ?, latitude = ?, longitude = ?,
        altitude_m = ?, gps_accuracy_m = ?, operator = ?, notes = ?,
        profile_inner_m = ?, profile_outer_m = ?, profile_step_m = ?, updated_at = ?
      WHERE id = ?`,
@@ -84,6 +84,7 @@ function surveyValues(s: SurveyInput) {
     s.mode,
     s.arrayType,
     s.polarityMethod,
+    s.lengthUnit,
     s.latitude,
     s.longitude,
     s.altitudeM,

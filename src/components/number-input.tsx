@@ -67,7 +67,7 @@ export function NumberInput<U extends string>({
           keyboardType={signed ? 'numeric' : 'decimal-pad'}
           placeholder={placeholder}
           placeholderTextColor={theme.textSecondary}
-          selectTextOnFocus
+          selectTextOnFocus={value !== '-'}
           style={[styles.input, { color: theme.text }]}
         />
         {suffix ? (

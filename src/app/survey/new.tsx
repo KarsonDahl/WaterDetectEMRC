@@ -14,6 +14,7 @@ function initialValues(latest: Survey | null): SurveyInput {
     mode: latest?.mode ?? 'sounding',
     arrayType: latest?.arrayType ?? 'schlumberger',
     polarityMethod: latest?.polarityMethod ?? 'reversal',
+    lengthUnit: latest?.lengthUnit ?? 'm',
     latitude: null,
     longitude: null,
     altitudeM: null,

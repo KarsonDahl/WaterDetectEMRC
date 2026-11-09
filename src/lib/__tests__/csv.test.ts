@@ -7,6 +7,7 @@ const survey: Survey = {
   mode: 'sounding',
   arrayType: 'wenner',
   polarityMethod: 'reversal',
+  lengthUnit: 'm',
   latitude: -1.2921,
   longitude: 36.8219,
   altitudeM: 1650,

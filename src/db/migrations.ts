@@ -47,6 +47,8 @@ const MIGRATIONS: string[] = [
 
   CREATE INDEX reading_survey_seq ON reading (survey_id, seq);
   `,
+  // 2: per-survey distance unit for entry/display (values stay stored in metres).
+  `ALTER TABLE survey ADD COLUMN length_unit TEXT NOT NULL DEFAULT 'm' CHECK (length_unit IN ('m', 'ft'));`,
 ];
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {

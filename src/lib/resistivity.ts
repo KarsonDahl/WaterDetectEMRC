@@ -76,7 +76,6 @@ export type ReadingResult = {
   warnings: ReadingWarning[];
 };
 
-const FEET_TO_METRES = 0.3048;
 const WENNER_TOLERANCE = 0.02;
 const SCHLUMBERGER_MAX_MN_RATIO = 1 / 5;
 const CURRENT_MISMATCH_TOLERANCE = 0.1;
@@ -97,15 +96,15 @@ export function isValidGeometry({ innerM, outerM }: Geometry): boolean {
 /**
  * Geometric factor K, metres.
  *
- * - Schlumberger: K = π ((AB/2) · 0.3048)², so ρa = |ΔV/ΔI| · π · ((AB/2) · 0.3048)².
- *   The outer spacing is entered in feet; 0.3048 converts it to metres here.
+ * - Schlumberger: K = π (AB/2)², so ρa = |ΔV/ΔI| · π · (AB/2)². AB is in metres here;
+ *   spacings typed in feet are multiplied by 0.3048 on entry (see `lengthToSI`).
  * - Otherwise (Wenner, or no array given): the general symmetric-array form
  *   K = π (AB² − MN²) / (4 · MN). Wenner (AB = 3a, MN = a) reduces to 2πa.
  */
 export function geometricFactor(g: Geometry, arrayType?: ArrayType): number | null {
   if (!isValidGeometry(g)) return null;
   const { innerM: mn, outerM: ab } = g;
-  if (arrayType === 'schlumberger') return Math.PI * ((ab / 2) * FEET_TO_METRES) ** 2;
+  if (arrayType === 'schlumberger') return Math.PI * (ab / 2) ** 2;
   return (Math.PI * (ab * ab - mn * mn)) / (4 * mn);
 }
 

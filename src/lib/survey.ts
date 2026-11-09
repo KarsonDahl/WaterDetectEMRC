@@ -5,6 +5,7 @@
 
 import type { Reading, Survey } from '@/db/types';
 import { nextProfilePosition, nextSoundingGeometry } from '@/lib/plans';
+import { lengthFromSI } from '@/lib/units';
 import { computeReading, soundingSpacing, soundingSpacingLabel, type Geometry, type ReadingResult } from '@/lib/resistivity';
 
 export type ChartPoint = {
@@ -23,11 +24,13 @@ export function readingResult(survey: Survey, r: Measurement): ReadingResult {
 
 /** Chart x value: spacing for a sounding, position along the line for a profile. */
 export function chartX(survey: Survey, r: Pick<Reading, 'innerM' | 'outerM' | 'positionM'>): number | null {
-  return survey.mode === 'sounding' ? soundingSpacing(survey.arrayType, r) : r.positionM;
+  const metres = survey.mode === 'sounding' ? soundingSpacing(survey.arrayType, r) : r.positionM;
+  return metres == null ? null : lengthFromSI(metres, survey.lengthUnit);
 }
 
 export function chartXLabel(survey: Survey): string {
-  return survey.mode === 'sounding' ? soundingSpacingLabel(survey.arrayType) : 'Position';
+  const label = survey.mode === 'sounding' ? soundingSpacingLabel(survey.arrayType) : 'Position';
+  return `${label} (${survey.lengthUnit})`;
 }
 
 export function chartPoints(survey: Survey, readings: Reading[]): ChartPoint[] {
@@ -59,7 +62,9 @@ export function suggestNextReading(survey: Survey, readings: Reading[]): NextRea
 }
 
 export function describeLayout(survey: Survey, g: NextReading): string {
+  const u = survey.lengthUnit;
+  const d = (m: number) => lengthFromSI(m, u);
   const spacing =
-    survey.arrayType === 'wenner' ? `a = ${g.innerM} m` : `AB/2 = ${g.outerM / 2} m, MN = ${g.innerM} m`;
-  return survey.mode === 'profile' ? `station at ${g.positionM} m` : spacing;
+    survey.arrayType === 'wenner' ? `a = ${d(g.innerM)} ${u}` : `AB/2 = ${d(g.outerM / 2)} ${u}, MN = ${d(g.innerM)} ${u}`;
+  return survey.mode === 'profile' && g.positionM != null ? `station at ${d(g.positionM)} ${u}` : spacing;
 }

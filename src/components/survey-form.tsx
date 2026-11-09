@@ -12,7 +12,7 @@ import { Spacing } from '@/constants/theme';
 import type { SurveyInput } from '@/db/types';
 import { captureGps } from '@/features/gps';
 import { geometryWarnings, type ArrayType, type PolarityMethod, type SurveyMode } from '@/lib/resistivity';
-import { parseDecimal, toInputText } from '@/lib/units';
+import { lengthFromSI, lengthToSI, parseDecimal, toInputText, type LengthUnit } from '@/lib/units';
 
 type Props = {
   initial: SurveyInput;
@@ -27,15 +27,16 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
   const [mode, setMode] = useState<SurveyMode>(initial.mode);
   const [arrayType, setArrayType] = useState<ArrayType>(initial.arrayType);
   const [polarityMethod, setPolarityMethod] = useState<PolarityMethod>(initial.polarityMethod);
+  const [lengthUnit, setLengthUnit] = useState<LengthUnit>(initial.lengthUnit);
   const [operator, setOperator] = useState(initial.operator);
   const [notes, setNotes] = useState(initial.notes);
   const [latitude, setLatitude] = useState(toInputText(initial.latitude));
   const [longitude, setLongitude] = useState(toInputText(initial.longitude));
   const [altitudeM, setAltitudeM] = useState<number | null>(initial.altitudeM);
   const [gpsAccuracyM, setGpsAccuracyM] = useState<number | null>(initial.gpsAccuracyM);
-  const [profileInner, setProfileInner] = useState(toInputText(initial.profileInnerM));
-  const [profileOuter, setProfileOuter] = useState(toInputText(initial.profileOuterM));
-  const [profileStep, setProfileStep] = useState(toInputText(initial.profileStepM));
+  const [profileInner, setProfileInner] = useState(toLengthText(initial.profileInnerM, initial.lengthUnit));
+  const [profileOuter, setProfileOuter] = useState(toLengthText(initial.profileOuterM, initial.lengthUnit));
+  const [profileStep, setProfileStep] = useState(toLengthText(initial.profileStepM, initial.lengthUnit));
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -43,9 +44,9 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
 
   const lat = parseDecimal(latitude);
   const lon = parseDecimal(longitude);
-  const inner = parseDecimal(profileInner);
-  const outer = parseDecimal(profileOuter);
-  const step = parseDecimal(profileStep);
+  const inner = toMetres(parseDecimal(profileInner), lengthUnit);
+  const outer = toMetres(parseDecimal(profileOuter), lengthUnit);
+  const step = toMetres(parseDecimal(profileStep), lengthUnit);
 
   const problems: string[] = [];
   if (!name.trim()) problems.push('Give the survey a name.');
@@ -64,6 +65,19 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
     setProfileInner(text);
     const a = parseDecimal(text);
     if (arrayType === 'wenner' && a != null) setProfileOuter(toInputText(3 * a));
+  }
+
+  /** Re-express the typed profile distances in the newly chosen unit, so the physical spacing is unchanged. */
+  function onUnitChange(next: LengthUnit) {
+    if (next === lengthUnit) return;
+    const convert = (text: string) => {
+      const m = toMetres(parseDecimal(text), lengthUnit);
+      return m == null ? text : toLengthText(m, next);
+    };
+    setProfileInner(convert(profileInner));
+    setProfileOuter(convert(profileOuter));
+    setProfileStep(convert(profileStep));
+    setLengthUnit(next);
   }
 
   async function onCaptureGps() {
@@ -92,6 +106,7 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
         mode,
         arrayType,
         polarityMethod,
+        lengthUnit,
         operator,
         notes,
         latitude: hasCoords ? lat : null,
@@ -136,6 +151,18 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
         />
       </Field>
 
+      <Field label="Distance units" hint="Spacings are typed and shown in this unit. Stored in metres.">
+        <Segmented
+          accessibilityLabel="Distance units"
+          options={[
+            { value: 'm', label: 'Metric (m)' },
+            { value: 'ft', label: 'Imperial (ft)' },
+          ]}
+          value={lengthUnit}
+          onChange={onUnitChange}
+        />
+      </Field>
+
       <Field
         label="Electrode array"
         hint={
@@ -158,13 +185,13 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
         <Card>
           <SectionTitle detail="Used for every station on this line.">Profile spacing</SectionTitle>
           <Field label="Inner stakes M–N">
-            <NumberInput accessibilityLabel="Inner spacing MN" value={profileInner} onChangeText={onInnerChange} suffix="m" />
+            <NumberInput accessibilityLabel="Inner spacing MN" value={profileInner} onChangeText={onInnerChange} suffix={lengthUnit} />
           </Field>
           <Field label="Outer stakes A–B (full span)">
-            <NumberInput accessibilityLabel="Outer spacing AB" value={profileOuter} onChangeText={setProfileOuter} suffix="m" />
+            <NumberInput accessibilityLabel="Outer spacing AB" value={profileOuter} onChangeText={setProfileOuter} suffix={lengthUnit} />
           </Field>
           <Field label="Distance between stations">
-            <NumberInput accessibilityLabel="Station interval" value={profileStep} onChangeText={setProfileStep} suffix="m" />
+            <NumberInput accessibilityLabel="Station interval" value={profileStep} onChangeText={setProfileStep} suffix={lengthUnit} />
           </Field>
           <WarningList warnings={profileWarnings} />
         </Card>
@@ -251,3 +278,11 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
 });
+
+function toMetres(value: number | null, unit: LengthUnit): number | null {
+  return value == null ? null : lengthToSI(value, unit);
+}
+
+function toLengthText(metres: number | null, unit: LengthUnit): string {
+  return metres == null ? '' : toInputText(lengthFromSI(metres, unit));
+}

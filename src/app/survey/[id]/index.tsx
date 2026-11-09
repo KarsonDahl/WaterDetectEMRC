@@ -17,7 +17,7 @@ import { exportCsv } from '@/features/export';
 import { useTheme } from '@/hooks/use-theme';
 import { capitalize } from '@/lib/format';
 import { chartPoints, chartX, chartXLabel, describeLayout, readingResult, suggestNextReading } from '@/lib/survey';
-import { formatSig } from '@/lib/units';
+import { formatSig, lengthFromSI } from '@/lib/units';
 
 export default function SurveyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -126,8 +126,8 @@ function ReadingTable({ survey, readings }: { survey: Survey; readings: Reading[
     <View style={[styles.table, { borderColor: theme.border }]}>
       <View style={[styles.tr, { borderBottomColor: theme.border }]}>
         <Cell header narrow>#</Cell>
-        <Cell header>{`${xLabel} (m)`}</Cell>
-        <Cell header>{sounding ? 'MN (m)' : 'AB (m)'}</Cell>
+        <Cell header>{xLabel}</Cell>
+        <Cell header>{`${sounding ? 'MN' : 'AB'} (${survey.lengthUnit})`}</Cell>
         <Cell header wide>ρa (Ω·m)</Cell>
         <Cell header narrow> </Cell>
       </View>
@@ -146,7 +146,7 @@ function ReadingTable({ survey, readings }: { survey: Survey; readings: Reading[
               ]}>
               <Cell narrow>{String(r.seq)}</Cell>
               <Cell>{formatSig(x, 3)}</Cell>
-              <Cell>{formatSig(sounding ? r.innerM : r.outerM, 3)}</Cell>
+              <Cell>{formatSig(lengthFromSI(sounding ? r.innerM : r.outerM, survey.lengthUnit), 3)}</Cell>
               <Cell wide strong>
                 {formatSig(result.rhoA, 3)}
               </Cell>

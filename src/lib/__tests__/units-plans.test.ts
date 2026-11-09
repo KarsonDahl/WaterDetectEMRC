@@ -1,5 +1,5 @@
 import { nextProfilePosition, nextSoundingGeometry, soundingPlan } from '@/lib/plans';
-import { formatSig, fromSI, parseDecimal, toSI, toggleSign } from '@/lib/units';
+import { formatSig, fromSI, lengthFromSI, lengthToSI, parseDecimal, toSI, toggleSign } from '@/lib/units';
 
 describe('parseDecimal', () => {
   it.each([
@@ -71,5 +71,14 @@ describe('spacing plans', () => {
   it('steps along a profile line', () => {
     expect(nextProfilePosition([], 5)).toBe(0);
     expect(nextProfilePosition([0, 5, 10], 5)).toBe(15);
+  });
+});
+
+describe('length units', () => {
+  it('converts feet to metres with 0.3048 and back', () => {
+    expect(lengthToSI(100, 'ft')).toBeCloseTo(30.48, 10);
+    expect(lengthToSI(5, 'm')).toBe(5);
+    expect(lengthFromSI(30.48, 'ft')).toBe(100);
+    expect(lengthFromSI(5, 'm')).toBe(5);
   });
 });

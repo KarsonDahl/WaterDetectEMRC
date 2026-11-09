@@ -1,4 +1,4 @@
-import type { CurrentUnit, VoltageUnit } from '@/lib/units';
+import type { CurrentUnit, LengthUnit, VoltageUnit } from '@/lib/units';
 import type { ArrayType, PolarityMethod, SurveyMode } from '@/lib/resistivity';
 
 /** One place where the crew sets up: a sounding (fixed centre) or a profile line. */
@@ -8,6 +8,8 @@ export type Survey = {
   mode: SurveyMode;
   arrayType: ArrayType;
   polarityMethod: PolarityMethod;
+  /** Distance unit shown and typed for this survey. Stored values stay in metres. */
+  lengthUnit: LengthUnit;
   latitude: number | null;
   longitude: number | null;
   altitudeM: number | null;
