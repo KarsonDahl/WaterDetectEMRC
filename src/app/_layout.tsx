@@ -25,6 +25,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerTitleStyle: { fontWeight: '700' }, headerShadowVisible: false }}>
           <Stack.Screen name="index" options={{ title: 'Surveys' }} />
           <Stack.Screen name="help" options={{ title: 'How it works' }} />
+          <Stack.Screen name="sync" options={{ title: 'Upload settings' }} />
           <Stack.Screen name="survey/new" options={{ title: 'New survey' }} />
           <Stack.Screen name="survey/[id]/index" options={{ title: '' }} />
           <Stack.Screen name="survey/[id]/edit" options={{ title: 'Edit survey' }} />

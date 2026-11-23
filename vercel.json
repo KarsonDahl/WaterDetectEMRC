@@ -4,7 +4,7 @@
   "installCommand": "npm install",
   "cleanUrls": true,
   "framework": null,
-  "rewrites": [{ "source": "/:path*", "destination": "/" }],
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/" }],
   "headers": [
     {
       "source": "/(.*)",
