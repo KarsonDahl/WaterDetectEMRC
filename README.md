@@ -139,7 +139,9 @@ forward/reverse currents differing by more than 10%.
 ## Data model
 
 ```
-survey    one setup: a sounding (fixed centre, widening stakes) or a profile (fixed spacing, moving along a line)
+survey    one setup: a sounding (fixed centre, widening stakes) or a profile (fixed spacing, moving along a line).
+          `mode` is derived, never asked: it becomes 'profile' once any reading has a position_m, else 'sounding'.
+          profile_* columns are legacy (unused for new surveys).
   id (uuid), name, mode, array_type, polarity_method,
   latitude, longitude, altitude_m, gps_accuracy_m, operator, notes,
   profile_inner_m, profile_outer_m, profile_step_m, created_at, updated_at

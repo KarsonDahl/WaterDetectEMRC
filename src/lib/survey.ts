@@ -4,7 +4,7 @@
  */
 
 import type { Reading, Survey } from '@/db/types';
-import { nextProfilePosition, nextSoundingGeometry } from '@/lib/plans';
+import { inferProfileStep, nextProfilePosition, nextSoundingGeometry } from '@/lib/plans';
 import { computeReading, soundingSpacing, soundingSpacingLabel, type Geometry, type ReadingResult } from '@/lib/resistivity';
 
 export type ChartPoint = {
@@ -46,13 +46,17 @@ export type NextReading = Geometry & { positionM: number | null };
 /** Suggested stake layout for the next reading, or null if the crew must choose. */
 export function suggestNextReading(survey: Survey, readings: Reading[]): NextReading | null {
   if (survey.mode === 'profile') {
-    if (survey.profileInnerM == null || survey.profileOuterM == null || survey.profileStepM == null) return null;
+    // Spacing stays fixed along a line, so repeat the last reading's. The profile_* columns
+    // only matter for surveys created before the type was derived from the readings.
+    const last = readings.at(-1);
+    const innerM = last?.innerM ?? survey.profileInnerM;
+    const outerM = last?.outerM ?? survey.profileOuterM;
+    if (innerM == null || outerM == null) return null;
     const positions = readings.map((r) => r.positionM).filter((p): p is number => p != null);
-    return {
-      innerM: survey.profileInnerM,
-      outerM: survey.profileOuterM,
-      positionM: nextProfilePosition(positions, survey.profileStepM),
-    };
+    const step = inferProfileStep(positions) ?? survey.profileStepM;
+    // Without a known interval the crew types the next position themselves.
+    const positionM = positions.length === 0 ? 0 : step == null ? null : nextProfilePosition(positions, step);
+    return { innerM, outerM, positionM };
   }
   const next = nextSoundingGeometry(survey.arrayType, readings);
   return next ? { ...next, positionM: null } : null;
@@ -61,5 +65,6 @@ export function suggestNextReading(survey: Survey, readings: Reading[]): NextRea
 export function describeLayout(survey: Survey, g: NextReading): string {
   const spacing =
     survey.arrayType === 'wenner' ? `a = ${g.innerM} m` : `AB/2 = ${g.outerM / 2} m, MN = ${g.innerM} m`;
-  return survey.mode === 'profile' ? `station at ${g.positionM} m` : spacing;
+  if (survey.mode !== 'profile') return spacing;
+  return g.positionM == null ? 'move the array along the line' : `station at ${g.positionM} m`;
 }

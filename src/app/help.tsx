@@ -46,8 +46,9 @@ export default function HelpScreen() {
       <SectionTitle>The curve</SectionTitle>
       <Card>
         <ThemedText>
-          Soundings plot ρa against spacing on log–log axes: AB/2 for Schlumberger, a for Wenner. Profiles plot ρa
-          against position along the line.
+          There is no survey type to choose. If you widen the stakes each reading, the curve plots ρa against spacing
+          on log–log axes (AB/2 for Schlumberger, a for Wenner): a sounding. If you type a position along a line for
+          the first reading, it plots ρa against position instead: a profile.
         </ThemedText>
         <ThemedText themeColor="textSecondary">
           A point far off the smooth curve is usually a bad reading — check stake contact and retake it while you are

@@ -4,14 +4,12 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from '@/components/button';
 import { Field, TextField } from '@/components/field';
 import { Card, Screen, SectionTitle } from '@/components/layout';
-import { NumberInput } from '@/components/number-input';
 import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
-import { WarningList } from '@/components/warning-list';
 import { Spacing } from '@/constants/theme';
 import type { SurveyInput } from '@/db/types';
 import { captureGps } from '@/features/gps';
-import { geometryWarnings, type ArrayType, type PolarityMethod, type SurveyMode } from '@/lib/resistivity';
+import type { ArrayType, PolarityMethod } from '@/lib/resistivity';
 import { parseDecimal, toInputText } from '@/lib/units';
 
 type Props = {
@@ -24,7 +22,6 @@ type Props = {
 
 export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) {
   const [name, setName] = useState(initial.name);
-  const [mode, setMode] = useState<SurveyMode>(initial.mode);
   const [arrayType, setArrayType] = useState<ArrayType>(initial.arrayType);
   const [polarityMethod, setPolarityMethod] = useState<PolarityMethod>(initial.polarityMethod);
   const [operator, setOperator] = useState(initial.operator);
@@ -33,9 +30,6 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
   const [longitude, setLongitude] = useState(toInputText(initial.longitude));
   const [altitudeM, setAltitudeM] = useState<number | null>(initial.altitudeM);
   const [gpsAccuracyM, setGpsAccuracyM] = useState<number | null>(initial.gpsAccuracyM);
-  const [profileInner, setProfileInner] = useState(toInputText(initial.profileInnerM));
-  const [profileOuter, setProfileOuter] = useState(toInputText(initial.profileOuterM));
-  const [profileStep, setProfileStep] = useState(toInputText(initial.profileStepM));
   const [gpsBusy, setGpsBusy] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -43,28 +37,12 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
 
   const lat = parseDecimal(latitude);
   const lon = parseDecimal(longitude);
-  const inner = parseDecimal(profileInner);
-  const outer = parseDecimal(profileOuter);
-  const step = parseDecimal(profileStep);
 
   const problems: string[] = [];
   if (!name.trim()) problems.push('Give the survey a name.');
   if (latitude.trim() && (lat == null || Math.abs(lat) > 90)) problems.push('Latitude must be between −90 and 90.');
   if (longitude.trim() && (lon == null || Math.abs(lon) > 180)) problems.push('Longitude must be between −180 and 180.');
   if ((lat == null) !== (lon == null)) problems.push('Enter both latitude and longitude, or neither.');
-  if (mode === 'profile') {
-    if (inner == null || outer == null) problems.push('Enter the fixed MN and AB spacing for the profile.');
-    if (step == null || step <= 0) problems.push('Enter the distance between stations.');
-  }
-  const profileWarnings =
-    mode === 'profile' && inner != null && outer != null ? geometryWarnings(arrayType, { innerM: inner, outerM: outer }) : [];
-  if (profileWarnings.some((w) => w.level === 'error')) problems.push('Fix the profile spacing.');
-
-  function onInnerChange(text: string) {
-    setProfileInner(text);
-    const a = parseDecimal(text);
-    if (arrayType === 'wenner' && a != null) setProfileOuter(toInputText(3 * a));
-  }
 
   async function onCaptureGps() {
     setGpsBusy(true);
@@ -89,7 +67,9 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
       const hasCoords = lat != null && lon != null;
       await onSubmit({
         name,
-        mode,
+        // The survey type is no longer asked: the repo derives it from the readings.
+        // Existing values pass through untouched (and updateSurvey ignores them).
+        mode: initial.mode,
         arrayType,
         polarityMethod,
         operator,
@@ -99,9 +79,9 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
         // Altitude/accuracy only mean something alongside the fix they came with.
         altitudeM: hasCoords ? altitudeM : null,
         gpsAccuracyM: hasCoords ? gpsAccuracyM : null,
-        profileInnerM: mode === 'profile' ? inner : null,
-        profileOuterM: mode === 'profile' ? outer : null,
-        profileStepM: mode === 'profile' ? step : null,
+        profileInnerM: initial.profileInnerM,
+        profileOuterM: initial.profileOuterM,
+        profileStepM: initial.profileStepM,
       });
     } catch (e) {
       setSubmitError((e as Error).message);
@@ -116,24 +96,6 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
       }>
       <Field label="Name">
         <TextField value={name} onChangeText={setName} placeholder="e.g. Village well site 3" />
-      </Field>
-
-      <Field
-        label="What are you measuring?"
-        hint={
-          mode === 'sounding'
-            ? 'Centre stays fixed; stakes move wider each reading to see deeper.'
-            : 'Spacing stays fixed; the whole array moves along a line.'
-        }>
-        <Segmented<SurveyMode>
-          accessibilityLabel="Survey type"
-          options={[
-            { value: 'sounding', label: 'Sounding' },
-            { value: 'profile', label: 'Profile' },
-          ]}
-          value={mode}
-          onChange={setMode}
-        />
       </Field>
 
       <Field
@@ -153,22 +115,6 @@ export function SurveyForm({ initial, submitLabel, onSubmit, children }: Props) 
           onChange={setArrayType}
         />
       </Field>
-
-      {mode === 'profile' ? (
-        <Card>
-          <SectionTitle detail="Used for every station on this line.">Profile spacing</SectionTitle>
-          <Field label="Inner stakes M–N">
-            <NumberInput accessibilityLabel="Inner spacing MN" value={profileInner} onChangeText={onInnerChange} suffix="m" />
-          </Field>
-          <Field label="Outer stakes A–B (full span)">
-            <NumberInput accessibilityLabel="Outer spacing AB" value={profileOuter} onChangeText={setProfileOuter} suffix="m" />
-          </Field>
-          <Field label="Distance between stations">
-            <NumberInput accessibilityLabel="Station interval" value={profileStep} onChangeText={setProfileStep} suffix="m" />
-          </Field>
-          <WarningList warnings={profileWarnings} />
-        </Card>
-      ) : null}
 
       <Card>
         <SectionTitle detail="GPS works without phone signal; the first fix can take a minute.">Location</SectionTitle>
