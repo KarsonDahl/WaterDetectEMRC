@@ -254,8 +254,13 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
         />
       </Field>
 
-      <View style={[styles.flip, { borderColor: theme.tint }]}>
-        <ThemedText style={[styles.flipText, { color: theme.tint }]}>⇅ Flip the DPDT switch</ThemedText>
+      {/* An instruction between steps, not something to tap — so no box, no tint. */}
+      <View style={styles.flip}>
+        <View style={[styles.flipLine, { backgroundColor: theme.border }]} />
+        <ThemedText type="small" themeColor="textSecondary" style={styles.flipText}>
+          ⇅ Now flip the DPDT switch
+        </ThemedText>
+        <View style={[styles.flipLine, { backgroundColor: theme.border }]} />
       </View>
 
       <SectionTitle
@@ -334,15 +339,17 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   flip: {
-    borderWidth: 2,
-    borderRadius: Radius,
-    paddingVertical: Spacing.two + 4,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.two,
     marginTop: Spacing.two,
   },
+  flipLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
   flipText: {
-    fontSize: 17,
-    fontWeight: 700,
+    fontStyle: 'italic',
   },
   hero: {
     fontSize: 40,
