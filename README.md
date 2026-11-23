@@ -11,6 +11,14 @@ entered. It replaces pen-and-paper collection and manual transfer to Excel.
 
 Status: MVP, manual entry only. Raspberry Pi capture is planned (see Roadmap).
 
+## Screenshots
+
+Captured from the web preview (a dev stand-in for the Android app).
+
+| Home | New survey | Entering a reading | Sounding curve |
+| --- | --- | --- | --- |
+| ![Home](docs/screenshots/home.png) | ![New survey](docs/screenshots/new-survey.png) | ![Entering a reading](docs/screenshots/reading.png) | ![Sounding curve](docs/screenshots/results.png) |
+
 ## Running it
 
 Requires Node 20+.
