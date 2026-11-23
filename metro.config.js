@@ -1,6 +1,7 @@
-// Only needed for the web dev preview: expo-sqlite on web runs SQLite as
-// WebAssembly and needs SharedArrayBuffer, which requires these headers.
-// The Android app does not use any of this.
+// Only needed for web (dev server and the Vercel demo): expo-sqlite on web runs
+// SQLite as WebAssembly and needs SharedArrayBuffer, which requires these
+// headers. These apply to the dev server only; production sends the same
+// headers from vercel.json. The Android app does not use any of this.
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);

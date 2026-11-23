@@ -9,7 +9,7 @@ Offline-first Android app for four-electrode ground resistivity surveys (see REA
 - Keep `src/lib/` free of React Native imports so it stays unit-testable (`npm test`) and portable to the Raspberry Pi.
 - Schema changes: append to `MIGRATIONS` in `src/db/migrations.ts`; never edit a shipped migration.
 - Field UX: large touch targets (`TouchTarget`), every option visible (no hidden dropdowns), warnings as icon + text.
-- Web (`npm run web`) is a dev preview only; Android is the target.
+- Android is the target. Web is also deployed to Vercel as a public demo (`vercel.json`, `npx expo export --platform web`, output `dist/`). It is a single-page build (`web.output: "single"`) with expo-sqlite running as WASM, which needs the COOP/COEP headers set in `vercel.json` and `metro.config.js`. Keep web working offline-first (no network calls), put web-only code in `.web.ts` files, and don't let the demo's limits (browser-only storage, no real GPS/share sheet) shape the Android design.
 
 ## Expo has changed — do not trust your training data
 

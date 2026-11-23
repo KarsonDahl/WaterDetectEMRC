@@ -23,8 +23,8 @@ npx expo start
 - **On a phone:** install **Expo Go** from the Play Store, then scan the QR code
   from `npx expo start` (phone and computer on the same Wi-Fi). Everything the
   app uses is included in Expo Go, so no custom build is needed for development.
-- **In a browser:** press `w`, or run `npm run web`. The web build is for quick
-  UI checks only; the target is Android.
+- **In a browser:** press `w`, or run `npm run web`. The target is still
+  Android, but the web build is also deployed as a live demo (see below).
 
 Checks to run before committing:
 
@@ -33,6 +33,26 @@ npm test            # unit tests for the math, units, spacing plans, CSV
 npm run typecheck
 npm run lint
 ```
+
+## Web demo (Vercel)
+
+The app is deployed as a static single-page site for demonstration. It runs
+fully in the browser: SQLite runs as WebAssembly (`expo-sqlite` web support,
+alpha) and each visitor's data stays in their own browser.
+
+```bash
+npx expo export --platform web   # writes dist/
+```
+
+`vercel.json` holds the build command, output folder, SPA rewrite and the
+`Cross-Origin-Embedder-Policy` / `Cross-Origin-Opener-Policy` headers that
+SQLite-on-web needs (`SharedArrayBuffer`). Import the repo in Vercel and deploy;
+no environment variables are needed.
+
+Differences from Android: data is per-browser (clearing site data erases it),
+CSV export downloads a file instead of opening the share sheet, GPS uses the
+browser's location prompt (HTTPS only, and coarse on desktops), and there is no
+Raspberry Pi capture.
 
 ## Building an installable app
 
