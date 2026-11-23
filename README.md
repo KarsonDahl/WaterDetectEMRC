@@ -54,6 +54,32 @@ CSV export downloads a file instead of opening the share sheet, GPS uses the
 browser's location prompt (HTTPS only, and coarse on desktops), and there is no
 Raspberry Pi capture.
 
+## Uploading to a central database (optional)
+
+Each survey has an **Upload to server** button. It is one-way (phone → server),
+manual, and needs signal; nothing else in the app depends on it. The server is a
+Vercel function (`api/sync.ts`) that writes to Neon Postgres. Re-uploading a
+survey updates it in place (UUIDs are made on the phone), and readings deleted on
+the phone are removed from the server copy on the next upload.
+
+One-time setup:
+
+1. Create a free Neon project and copy its connection string.
+2. In Vercel, add it as the `DATABASE_URL` environment variable and redeploy.
+3. Create the tables and an API key, locally:
+   ```bash
+   DATABASE_URL='postgres://…' node scripts/db.mjs setup
+   DATABASE_URL='postgres://…' node scripts/db.mjs create-key "Crew A"
+   ```
+   The key is shown once and only its hash is stored. Revoke with `revoke-key`.
+4. In the app, open a survey → **Upload settings** and enter the server address
+   and the key.
+
+The server rejects anything that is not exactly the app's payload shape
+(`src/lib/sync-payload.ts`), caps uploads at 1 MB and 1000 readings per survey,
+and only accepts keys it has issued. Deployment Protection must be off on the
+Vercel project for the app to reach `/api/sync`.
+
 ## Building an installable app
 
 Builds run on Expo's cloud service (EAS), so Android Studio isn't needed. You

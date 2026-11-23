@@ -4,7 +4,7 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 Offline-first Android app for four-electrode ground resistivity surveys (see README.md).
 
-- Field use with no signal: never add a feature that needs the network to work. SQLite (`expo-sqlite`) is the source of truth.
+- Field use with no signal: never add a feature that needs the network to work. SQLite (`expo-sqlite`) is the source of truth. The one exception is the deliberate, one-way "Upload to server" button (`src/features/sync.ts`, `api/sync.ts`, Neon Postgres): it is opt-in, never blocks or modifies local data, and everything else must keep working without it. The payload shape and its validation live in `src/lib/sync-payload.ts`; the server schema is `server/schema.sql`; keys are managed with `scripts/db.mjs`.
 - The DB stores raw readings in SI units (V, A, m). K, R and ρa are always derived via `src/lib/resistivity.ts`, never stored.
 - Keep `src/lib/` free of React Native imports so it stays unit-testable (`npm test`) and portable to the Raspberry Pi.
 - Schema changes: append to `MIGRATIONS` in `src/db/migrations.ts`; never edit a shipped migration.

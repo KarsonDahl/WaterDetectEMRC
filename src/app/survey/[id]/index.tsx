@@ -1,6 +1,6 @@
 import { Link, Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -14,6 +14,7 @@ import { getSurvey, listReadings } from '@/db/repo';
 import type { Reading, Survey } from '@/db/types';
 import { showError } from '@/features/dialogs';
 import { exportCsv } from '@/features/export';
+import { getLastUpload, uploadSurvey } from '@/features/sync';
 import { useTheme } from '@/hooks/use-theme';
 import { capitalize } from '@/lib/format';
 import { chartPoints, chartX, chartXLabel, describeLayout, readingResult, suggestNextReading } from '@/lib/survey';
@@ -27,6 +28,12 @@ export default function SurveyScreen() {
     [id],
   );
   const [exporting, setExporting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [lastUpload, setLastUpload] = useState<string | null>(null);
+
+  useEffect(() => {
+    getLastUpload(id).then(setLastUpload, () => setLastUpload(null));
+  }, [id]);
 
   if (!data) return null;
   const { survey, readings } = data;
@@ -48,6 +55,18 @@ export default function SurveyScreen() {
       showError('Export failed', e);
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function onUpload() {
+    setUploading(true);
+    try {
+      await uploadSurvey(db, id);
+      setLastUpload(await getLastUpload(id));
+    } catch (e) {
+      showError('Upload failed', e);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -85,6 +104,23 @@ export default function SurveyScreen() {
           {`Readings (${readings.length})`}
         </SectionTitle>
         {readings.length > 0 ? <ReadingTable survey={survey} readings={readings} /> : null}
+
+        <Card>
+          <SectionTitle detail="Optional. Needs signal. Your data stays on this phone either way.">
+            Central server
+          </SectionTitle>
+          <ThemedText type="small" themeColor="textSecondary">
+            {lastUpload ? `Last uploaded ${new Date(lastUpload).toLocaleString()}` : 'Not uploaded yet.'}
+          </ThemedText>
+          <Button title="Upload to server" variant="secondary" onPress={onUpload} busy={uploading} />
+          <Link href="/sync" asChild>
+            <Pressable accessibilityRole="link" hitSlop={8}>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.link}>
+                Upload settings
+              </ThemedText>
+            </Pressable>
+          </Link>
+        </Card>
       </Screen>
     </>
   );
@@ -192,6 +228,9 @@ const styles = StyleSheet.create({
   },
   summary: {
     gap: 2,
+  },
+  link: {
+    textDecorationLine: 'underline',
   },
   table: {
     borderTopWidth: StyleSheet.hairlineWidth,
