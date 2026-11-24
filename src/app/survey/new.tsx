@@ -11,7 +11,8 @@ import { defaultSurveyName } from '@/lib/format';
 function initialValues(latest: Survey | null): SurveyInput {
   return {
     name: defaultSurveyName(),
-    mode: latest?.mode ?? 'sounding',
+    // Starts as a sounding; becomes a profile once a reading has a position along a line.
+    mode: 'sounding',
     arrayType: latest?.arrayType ?? 'schlumberger',
     polarityMethod: latest?.polarityMethod ?? 'reversal',
     latitude: null,
@@ -20,9 +21,9 @@ function initialValues(latest: Survey | null): SurveyInput {
     gpsAccuracyM: null,
     operator: latest?.operator ?? '',
     notes: '',
-    profileInnerM: latest?.profileInnerM ?? null,
-    profileOuterM: latest?.profileOuterM ?? null,
-    profileStepM: latest?.profileStepM ?? null,
+    profileInnerM: null,
+    profileOuterM: null,
+    profileStepM: null,
   };
 }
 

@@ -60,17 +60,43 @@ export async function createSurvey(db: SQLiteDatabase, input: SurveyInput): Prom
 }
 
 export async function updateSurvey(db: SQLiteDatabase, id: string, input: SurveyInput): Promise<void> {
+  // `mode` and the profile_* columns are deliberately not written here: the survey type
+  // is derived from the readings (see syncSurveyMode), not chosen by the user.
   await db.runAsync(
     `UPDATE survey SET
-       name = ?, mode = ?, array_type = ?, polarity_method = ?, latitude = ?, longitude = ?,
-       altitude_m = ?, gps_accuracy_m = ?, operator = ?, notes = ?,
-       profile_inner_m = ?, profile_outer_m = ?, profile_step_m = ?, updated_at = ?
+       name = ?, array_type = ?, polarity_method = ?, latitude = ?, longitude = ?,
+       altitude_m = ?, gps_accuracy_m = ?, operator = ?, notes = ?, updated_at = ?
      WHERE id = ?`,
-    ...surveyValues(input),
+    input.name.trim(),
+    input.arrayType,
+    input.polarityMethod,
+    input.latitude,
+    input.longitude,
+    input.altitudeM,
+    input.gpsAccuracyM,
+    input.operator.trim(),
+    input.notes.trim(),
     now(),
     id,
   );
   notifyChange();
+}
+
+/**
+ * A survey is a profile once any of its readings has a position along a line,
+ * otherwise a sounding. Kept in the `mode` column so charts, CSV export and
+ * uploads all see one consistent value. A survey with no readings keeps its value.
+ */
+async function syncSurveyMode(db: SQLiteDatabase, surveyId: string): Promise<void> {
+  await db.runAsync(
+    `UPDATE survey SET mode = CASE
+         WHEN EXISTS (SELECT 1 FROM reading WHERE survey_id = ? AND position_m IS NOT NULL) THEN 'profile'
+         ELSE 'sounding' END
+     WHERE id = ? AND EXISTS (SELECT 1 FROM reading WHERE survey_id = ?)`,
+    surveyId,
+    surveyId,
+    surveyId,
+  );
 }
 
 export async function deleteSurvey(db: SQLiteDatabase, id: string): Promise<void> {
@@ -125,6 +151,7 @@ export async function createReading(db: SQLiteDatabase, surveyId: string, input:
     ts,
     ts,
   );
+  await syncSurveyMode(db, surveyId);
   notifyChange();
   return id;
 }
@@ -139,11 +166,15 @@ export async function updateReading(db: SQLiteDatabase, id: string, input: Readi
     now(),
     id,
   );
+  const row = await db.getFirstAsync<{ survey_id: string }>(`SELECT survey_id FROM reading WHERE id = ?`, id);
+  if (row) await syncSurveyMode(db, row.survey_id);
   notifyChange();
 }
 
 export async function deleteReading(db: SQLiteDatabase, id: string): Promise<void> {
+  const row = await db.getFirstAsync<{ survey_id: string }>(`SELECT survey_id FROM reading WHERE id = ?`, id);
   await db.runAsync(`DELETE FROM reading WHERE id = ?`, id);
+  if (row) await syncSurveyMode(db, row.survey_id);
   notifyChange();
 }
 

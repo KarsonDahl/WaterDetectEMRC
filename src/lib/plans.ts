@@ -33,6 +33,16 @@ export function nextSoundingGeometry(arrayType: ArrayType, measured: Geometry[])
   return soundingPlan(arrayType).find((g) => g.outerM > widest + 1e-9) ?? null;
 }
 
+/**
+ * The station interval the crew is using, read from their last two positions
+ * (in the order entered), or null if there are fewer than two or they don't advance.
+ */
+export function inferProfileStep(positionsInOrder: number[]): number | null {
+  if (positionsInOrder.length < 2) return null;
+  const step = positionsInOrder[positionsInOrder.length - 1] - positionsInOrder[positionsInOrder.length - 2];
+  return step > 0 ? step : null;
+}
+
 /** Next station along a profile line. */
 export function nextProfilePosition(positions: number[], stepM: number): number {
   if (positions.length === 0) return 0;

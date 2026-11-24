@@ -84,8 +84,8 @@ function EmptyState() {
     <Card>
       <ThemedText style={styles.rowTitle}>No surveys yet</ThemedText>
       <ThemedText themeColor="textSecondary">
-        A survey is one spot (a sounding) or one line (a profile). Create one when you arrive on site, then add a
-        reading for each stake spacing.
+        A survey is one spot or one line. Create one when you arrive on site, then add a reading for each stake
+        spacing. The curve works out whether it is a sounding or a profile from your readings.
       </ThemedText>
       <ThemedText themeColor="textSecondary">
         Everything is saved on this phone and works with no signal. Use Export to send a CSV when you are back online.

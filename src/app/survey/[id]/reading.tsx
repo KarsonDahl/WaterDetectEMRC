@@ -16,6 +16,7 @@ import { createReading, deleteReading, getSurvey, listReadings, updateReading } 
 import type { Reading, ReadingInput, Survey } from '@/db/types';
 import { confirmDestructive, showError } from '@/features/dialogs';
 import { useTheme } from '@/hooks/use-theme';
+import type { SurveyMode } from '@/lib/resistivity';
 import { chartPoints, chartX, chartXLabel, readingResult, suggestNextReading } from '@/lib/survey';
 import { formatSig, fromSI, parseDecimal, toInputText, toSI, type CurrentUnit, type VoltageUnit } from '@/lib/units';
 
@@ -113,6 +114,15 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
   const outerM = parseDecimal(outer);
   const positionM = parseDecimal(position);
 
+  // The survey type comes from its readings, not from a setting. Once other readings exist
+  // they fix it (a profile needs a position every time). The first reading decides by
+  // whether a position along a line is typed.
+  const others = readings.filter((r) => r.id !== editing?.id);
+  const profileFixed = others.length > 0 && survey.mode === 'profile';
+  const showPosition = others.length === 0 || profileFixed;
+  const kind: SurveyMode = others.length > 0 ? survey.mode : positionM != null ? 'profile' : 'sounding';
+  const view: Survey = { ...survey, mode: kind };
+
   const measurement = {
     innerM: innerM ?? NaN,
     outerM: outerM ?? NaN,
@@ -122,11 +132,11 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
     i2: amps(i2),
   };
   const result = readingResult(survey, measurement);
-  const draftX = chartX(survey, { ...measurement, positionM });
+  const draftX = chartX(view, { ...measurement, positionM });
 
   const problems: string[] = [];
   if (innerM == null || outerM == null) problems.push('Enter both stake spacings.');
-  if (survey.mode === 'profile' && positionM == null) problems.push('Enter the station position.');
+  if (profileFixed && positionM == null) problems.push('Enter the station position.');
   if (measurement.v1 == null || measurement.i1 == null) problems.push('Enter at least the switch position 1 voltage and current.');
   if (result.warnings.some((w) => w.level === 'error')) problems.push('Fix the errors above.');
   const invalidText = [position, inner, outer, v1, i1, v2, i2].some((t) => t.trim() !== '' && parseDecimal(t) == null);
@@ -140,7 +150,7 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
 
   function toInput(): ReadingInput {
     return {
-      positionM: survey.mode === 'profile' ? positionM : null,
+      positionM: showPosition ? positionM : null,
       innerM: innerM!,
       outerM: outerM!,
       v1: measurement.v1,
@@ -206,8 +216,10 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
       <SectionTitle detail={survey.arrayType === 'wenner' ? 'Wenner: AB is set to 3 × MN for you.' : undefined}>
         Stakes
       </SectionTitle>
-      {survey.mode === 'profile' ? (
-        <Field label="Station position along the line">
+      {showPosition ? (
+        <Field
+          label={profileFixed ? 'Station position along the line' : 'Position along a line (optional)'}
+          hint={profileFixed ? undefined : 'Only for a profile. Leave empty for a sounding, where the stakes widen each reading.'}>
           <NumberInput accessibilityLabel="Station position" value={position} onChangeText={setPosition} suffix="m" />
         </Field>
       ) : null}
@@ -287,10 +299,10 @@ function ReadingForm({ survey, readings, editing, savedSeq, onSavedAndNext }: Fo
         </ThemedText>
         <WarningList warnings={result.warnings} />
         <ResistivityChart
-          points={chartPoints(survey, readings.filter((r) => r.id !== editing?.id))}
+          points={chartPoints(view, others)}
           draft={draftX != null && result.rhoA != null ? { x: draftX, y: result.rhoA } : null}
-          xScale={survey.mode === 'sounding' ? 'log' : 'linear'}
-          xLabel={chartXLabel(survey)}
+          xScale={kind === 'sounding' ? 'log' : 'linear'}
+          xLabel={chartXLabel(view)}
           yLabel="ρa (Ω·m)"
           height={220}
         />
